@@ -10,9 +10,9 @@ export default function Header() {
           <a href="#">Features</a>
           <a href="#">About us</a>
         </nav>
-        <button className="bg-[#5B5BD6] text-white px-5 py-2 rounded-lg">
-          sign in
-        </button>
+        <a href="/login" className="bg-[#5B5BD6] text-white px-5 py-2 rounded-lg">
+  sign in
+</a>
       </header>
     )
   }

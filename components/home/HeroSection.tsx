@@ -9,9 +9,9 @@ export default function HeroSection() {
             Share your location, chat with friends,<br />
             and find the perfect meeting spot in seconds.
           </p>
-          <button className="bg-[#5B5BD6] text-white px-6 py-3 rounded-lg w-fit">
-            Let's get started!
-          </button>
+          <a href="/login" className="bg-[#5B5BD6] text-white px-6 py-3 rounded-lg w-fit">
+  Let's get started!
+</a>
         </div>
         <div className="w-80 h-80 bg-green-400 rounded-2xl flex items-center justify-center text-white text-8xl">
           ✓
