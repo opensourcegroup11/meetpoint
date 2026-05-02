@@ -41,3 +41,4 @@ Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/bui
 >>>>>>> e4e8f2d4340d57dd546b482eb04bbf9d3a427383
 - KAN-3 닉네임 입력 UI 구현 작업을 Jira와 연결
 - KAN-11 로그인 UI 연결
+- KAN-12 Continue 버튼 연결
