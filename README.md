@@ -39,3 +39,4 @@ Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/bui
 # meetpoint
 친구 위치 공유 및 약속 장소 추천 웹
 >>>>>>> e4e8f2d4340d57dd546b482eb04bbf9d3a427383
+- KAN-26 GitHub 저장소 생성 및 코드 업로드 작업을 Jira와 연결
