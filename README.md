@@ -41,3 +41,4 @@ Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/bui
 >>>>>>> e4e8f2d4340d57dd546b482eb04bbf9d3a427383
 - KAN-10 홈 화면 UI 구현 작업을 Jira와 연결
 - KAN-24 초기 세팅 연결
+- KAN-25 Tailwind 설정 연결
