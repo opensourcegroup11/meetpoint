@@ -1,4 +1,4 @@
-<<<<<<< HEAD
+
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
 ## Getting Started
@@ -35,8 +35,13 @@ You can check out [the Next.js GitHub repository](https://github.com/vercel/next
 The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
 
 Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
-=======
 # meetpoint
-친구 위치 공유 및 약속 장소 추천 웹
->>>>>>> e4e8f2d4340d57dd546b482eb04bbf9d3a427383
+
+친구 위치 공유 및 약속 장소 추천 웹앱입니다.
+
+## Jira 연동 기록
+
+- KAN-10 홈 화면 UI 구현 작업을 Jira와 연결
+- KAN-24 초기 세팅 연결
+- KAN-25 Tailwind 설정 연결
 - KAN-26 GitHub 저장소 생성 및 코드 업로드 작업을 Jira와 연결
