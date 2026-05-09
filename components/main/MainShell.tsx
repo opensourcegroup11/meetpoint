@@ -6,7 +6,7 @@ import MapCard from "./MapCard";
 export default function MainShell() {
   return (
     <main className="min-h-screen bg-[#F5F5F5] flex flex-col">
-      <Header />
+      <Header showLogout />
 
       <div className="flex gap-6 px-12 py-8">
         <FriendList />
