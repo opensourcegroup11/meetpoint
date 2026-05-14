@@ -29,6 +29,35 @@ function isValidLatLng(lat: number, lng: number) {
   );
 }
 
+// 위치 조회
+export async function GET() {
+  const currentUser = await getCurrentUserFromCookie();
+
+  if (!currentUser) {
+    return fail(401, "UNAUTHORIZED", "로그인이 필요합니다.");
+  }
+
+  const supabase = getSupabaseAdminClient();
+
+  const { data, error } = await supabase
+    .from("users")
+    .select("lat, lng, location_updated_at")
+    .eq("id", currentUser.userId)
+    .single();
+
+  if (error || !data) {
+    return fail(500, "INTERNAL_ERROR", "위치 정보를 불러오지 못했습니다.");
+  }
+
+  return ok({
+    location: {
+      lat: data.lat,
+      lng: data.lng,
+      locationUpdatedAt: data.location_updated_at,
+    },
+  });
+}
+
 // 위치 저장
 export async function POST(req: NextRequest) {
   const currentUser = await getCurrentUserFromCookie();
