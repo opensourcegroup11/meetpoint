@@ -5,6 +5,7 @@ import Header from "@/components/common/Header";
 import FriendList from "./FriendList";
 import FriendAddCard from "./FriendAddCard";
 import MapCard from "./MapCard";
+import ChatPanel from "./ChatPanel";
 
 type FriendSummary = {
   id: string;
@@ -73,6 +74,9 @@ export default function MainShell() {
     await fetchFriends();
   }
 
+  const selectedFriend =
+    friends.find((friend) => friend.id === selectedFriendId) ?? null;
+
   return (
     <main className="min-h-screen bg-[#F5F5F5] flex flex-col">
       <Header showLogout />
@@ -88,6 +92,15 @@ export default function MainShell() {
 
         <div className="flex flex-col gap-6 flex-1">
           <FriendAddCard onAddFriend={handleAddFriend} />
+
+          {selectedFriend ? (
+            <ChatPanel selectedFriend={selectedFriend} />
+          ) : (
+            <div className="bg-white rounded-2xl p-6 shadow-sm text-gray-400">
+              친구를 선택하면 채팅을 시작할 수 있습니다.
+            </div>
+          )}
+
           <MapCard />
         </div>
       </div>
