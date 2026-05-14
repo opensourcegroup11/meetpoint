@@ -1,18 +1,93 @@
+"use client";
+
+import { useCallback, useEffect, useState } from "react";
 import Header from "@/components/common/Header";
 import FriendList from "./FriendList";
 import FriendAddCard from "./FriendAddCard";
 import MapCard from "./MapCard";
 
+type FriendSummary = {
+  id: string;
+  relationId?: string;
+  nickname: string;
+  lat: number | null;
+  lng: number | null;
+  locationUpdatedAt: string | null;
+};
+
+type ApiResponse<T> =
+  | { ok: true; data: T }
+  | { ok: false; error: { code: string; message: string } };
+
 export default function MainShell() {
+  const [friends, setFriends] = useState<FriendSummary[]>([]);
+  const [selectedFriendId, setSelectedFriendId] = useState<string | null>(null);
+  const [friendsLoading, setFriendsLoading] = useState(false);
+  const [friendsError, setFriendsError] = useState<string | null>(null);
+
+  const fetchFriends = useCallback(async () => {
+    setFriendsLoading(true);
+    setFriendsError(null);
+
+    try {
+      const res = await fetch("/api/friends");
+      const result = (await res.json()) as ApiResponse<{
+        friends: FriendSummary[];
+      }>;
+
+      if (!result.ok) {
+        setFriendsError(result.error.message);
+        return;
+      }
+
+      setFriends(result.data.friends);
+    } catch {
+      setFriendsError("친구 목록을 불러오는 중 오류가 발생했습니다.");
+    } finally {
+      setFriendsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    void fetchFriends();
+  }, [fetchFriends]);
+
+  async function handleAddFriend(friendNickname: string) {
+    const res = await fetch("/api/friends", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ friendNickname }),
+    });
+
+    const result = (await res.json()) as ApiResponse<{
+      relationId: string;
+      friend: FriendSummary;
+    }>;
+
+    if (!result.ok) {
+      throw new Error(result.error.message);
+    }
+
+    await fetchFriends();
+  }
+
   return (
     <main className="min-h-screen bg-[#F5F5F5] flex flex-col">
       <Header showLogout />
 
       <div className="flex gap-6 px-12 py-8">
-        <FriendList />
+        <FriendList
+          friends={friends}
+          loading={friendsLoading}
+          error={friendsError}
+          selectedFriendId={selectedFriendId}
+          onSelectFriend={setSelectedFriendId}
+        />
 
         <div className="flex flex-col gap-6 flex-1">
-          <FriendAddCard />
+          <FriendAddCard onAddFriend={handleAddFriend} />
           <MapCard />
         </div>
       </div>
