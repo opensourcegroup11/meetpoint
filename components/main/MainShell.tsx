@@ -6,6 +6,7 @@ import FriendList from "./FriendList";
 import FriendAddCard from "./FriendAddCard";
 import MapCard from "./MapCard";
 import ChatPanel from "./ChatPanel";
+import RecommendationPanel from "./RecommendationPanel";
 
 type FriendSummary = {
   id: string;
@@ -111,6 +112,8 @@ export default function MainShell() {
           )}
 
           <MapCard friendLocation={friendLocation} />
+
+          <RecommendationPanel selectedFriend={selectedFriend} />
         </div>
       </div>
     </main>
