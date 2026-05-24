@@ -77,6 +77,15 @@ export default function MainShell() {
   const selectedFriend =
     friends.find((friend) => friend.id === selectedFriendId) ?? null;
 
+  const friendLocation =
+    selectedFriend?.lat != null && selectedFriend?.lng != null
+      ? {
+          lat: selectedFriend.lat,
+          lng: selectedFriend.lng,
+          locationUpdatedAt: selectedFriend.locationUpdatedAt,
+        }
+      : null;
+
   return (
     <main className="min-h-screen bg-[#F5F5F5] flex flex-col">
       <Header showLogout />
@@ -101,7 +110,7 @@ export default function MainShell() {
             </div>
           )}
 
-          <MapCard />
+          <MapCard friendLocation={friendLocation} />
         </div>
       </div>
     </main>
