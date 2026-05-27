@@ -24,6 +24,7 @@ type ApiResponse<T> =
 export default function MainShell() {
   const [friends, setFriends] = useState<FriendSummary[]>([]);
   const [selectedFriendId, setSelectedFriendId] = useState<string | null>(null);
+  const [recommendedPlaces, setRecommendedPlaces] = useState<Array<{ id: string; name: string; lat: number; lng: number }>>([]);
   const [friendsLoading, setFriendsLoading] = useState(false);
   const [friendsError, setFriendsError] = useState<string | null>(null);
 
@@ -111,9 +112,12 @@ export default function MainShell() {
             </div>
           )}
 
-          <MapCard friendLocation={friendLocation} />
+<MapCard friendLocation={friendLocation} recommendedPlaces={recommendedPlaces} />
 
-          <RecommendationPanel selectedFriend={selectedFriend} />
+<RecommendationPanel
+  selectedFriend={selectedFriend}
+  onResult={(data) => setRecommendedPlaces(data?.places ?? [])}
+/>
         </div>
       </div>
     </main>
