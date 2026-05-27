@@ -17,8 +17,16 @@ type LocationResponse = {
   location: LocationPoint | null;
 };
 
+type RecommendedPlace = {
+  id: string;
+  name: string;
+  lat: number;
+  lng: number;
+};
+
 type MapCardProps = {
   friendLocation?: LocationPoint | null;
+  recommendedPlaces?: RecommendedPlace[];
 };
 
 function loadKakaoMapScript(): Promise<any> {
@@ -67,11 +75,11 @@ function loadKakaoMapScript(): Promise<any> {
   });
 }
 
-function createMarkerContent(label: string, type: "me" | "friend" | "midpoint") {
+function createMarkerContent(label: string, type: "me" | "friend" | "midpoint" | "place") {
   const color =
-    type === "me" ? "#5B5BD6" : type === "friend" ? "#10B981" : "#F59E0B";
+    type === "me" ? "#5B5BD6" : type === "friend" ? "#10B981" : type === "place" ? "#EF4444" : "#F59E0B";
 
-  const icon = type === "midpoint" ? "★" : "●";
+  const icon = type === "midpoint" ? "★" : type === "place" ? "📍" : "●";
 
   return `
     <div style="
@@ -94,7 +102,7 @@ function createMarkerContent(label: string, type: "me" | "friend" | "midpoint") 
   `;
 }
 
-export default function MapCard({ friendLocation = null }: MapCardProps) {
+export default function MapCard({ friendLocation = null, recommendedPlaces = [] }: MapCardProps) {
   const mapRef = useRef<HTMLDivElement | null>(null);
 
   const [myLocation, setMyLocation] = useState<LocationPoint | null>(null);
@@ -174,7 +182,7 @@ export default function MapCard({ friendLocation = null }: MapCardProps) {
         function addMarker(
           location: LocationPoint,
           label: string,
-          type: "me" | "friend" | "midpoint",
+          type: "me" | "friend" | "midpoint" | "place",
         ) {
           const position = new kakao.maps.LatLng(location.lat, location.lng);
         
@@ -200,6 +208,13 @@ export default function MapCard({ friendLocation = null }: MapCardProps) {
         if (midpoint) {
           addMarker(midpoint, "중심점", "midpoint");
         }
+        recommendedPlaces.forEach((place, index) => {
+          addMarker(
+            { lat: place.lat, lng: place.lng, locationUpdatedAt: null },
+            `추천 ${index + 1}위 ${place.name}`,
+            "place",
+          );
+        });
 
         if (markerCount >= 2) {
           map.setBounds(bounds);
@@ -220,7 +235,7 @@ export default function MapCard({ friendLocation = null }: MapCardProps) {
     return () => {
       cancelled = true;
     };
-  }, [showMap, myLocation, friendLocation, midpoint]);
+  }, [showMap, myLocation, friendLocation, midpoint, recommendedPlaces]);
 
   async function saveLocation(lat: number, lng: number) {
     const res = await fetch("/api/location", {

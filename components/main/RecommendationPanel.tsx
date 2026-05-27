@@ -63,6 +63,7 @@ type RecommendationResponse = {
 
 type RecommendationPanelProps = {
   selectedFriend: FriendSummary | null;
+  onResult?: (result: RecommendationResponse | null) => void;
 };
 
 function formatMeter(value: number) {
@@ -86,6 +87,7 @@ function getFriendLocation(friend: FriendSummary | null): LocationPoint | null {
 
 export default function RecommendationPanel({
   selectedFriend,
+  onResult,
 }: RecommendationPanelProps) {
   const [mode, setMode] = useState<Mode>("now");
   const [category, setCategory] = useState<Category>("cafe");
@@ -168,6 +170,7 @@ export default function RecommendationPanel({
       }
 
       setResult(json.data);
+      onResult?.(json.data);
     } catch (recommendError) {
       setError(
         recommendError instanceof Error
