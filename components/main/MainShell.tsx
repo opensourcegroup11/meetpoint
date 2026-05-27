@@ -1,5 +1,4 @@
 "use client";
-
 import { useCallback, useEffect, useState } from "react";
 import Header from "@/components/common/Header";
 import FriendList from "./FriendList";
@@ -21,28 +20,38 @@ type ApiResponse<T> =
   | { ok: true; data: T }
   | { ok: false; error: { code: string; message: string } };
 
+type DeparturePoint = {
+  address: string;
+  lat: number;
+  lng: number;
+};
+
+type LocationPoint = {
+  lat: number;
+  lng: number;
+  locationUpdatedAt: string | null;
+};
+
 export default function MainShell() {
   const [friends, setFriends] = useState<FriendSummary[]>([]);
   const [selectedFriendId, setSelectedFriendId] = useState<string | null>(null);
   const [recommendedPlaces, setRecommendedPlaces] = useState<Array<{ id: string; name: string; lat: number; lng: number }>>([]);
+  const [meetingMode, setMeetingMode] = useState<"now" | "later">("now");
+  const [myDeparture, setMyDeparture] = useState<DeparturePoint | null>(null);
+  const [friendDeparture, setFriendDeparture] = useState<DeparturePoint | null>(null);
   const [friendsLoading, setFriendsLoading] = useState(false);
   const [friendsError, setFriendsError] = useState<string | null>(null);
 
   const fetchFriends = useCallback(async () => {
     setFriendsLoading(true);
     setFriendsError(null);
-
     try {
       const res = await fetch("/api/friends");
-      const result = (await res.json()) as ApiResponse<{
-        friends: FriendSummary[];
-      }>;
-
+      const result = (await res.json()) as ApiResponse<{ friends: FriendSummary[] }>;
       if (!result.ok) {
         setFriendsError(result.error.message);
         return;
       }
-
       setFriends(result.data.friends);
     } catch {
       setFriendsError("친구 목록을 불러오는 중 오류가 발생했습니다.");
@@ -58,40 +67,32 @@ export default function MainShell() {
   async function handleAddFriend(friendNickname: string) {
     const res = await fetch("/api/friends", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ friendNickname }),
     });
-
-    const result = (await res.json()) as ApiResponse<{
-      relationId: string;
-      friend: FriendSummary;
-    }>;
-
-    if (!result.ok) {
-      throw new Error(result.error.message);
-    }
-
+    const result = (await res.json()) as ApiResponse<{ relationId: string; friend: FriendSummary }>;
+    if (!result.ok) throw new Error(result.error.message);
     await fetchFriends();
   }
 
-  const selectedFriend =
-    friends.find((friend) => friend.id === selectedFriendId) ?? null;
+  const selectedFriend = friends.find((f) => f.id === selectedFriendId) ?? null;
 
-  const friendLocation =
+  const friendLocation: LocationPoint | null =
     selectedFriend?.lat != null && selectedFriend?.lng != null
-      ? {
-          lat: selectedFriend.lat,
-          lng: selectedFriend.lng,
-          locationUpdatedAt: selectedFriend.locationUpdatedAt,
-        }
+      ? { lat: selectedFriend.lat, lng: selectedFriend.lng, locationUpdatedAt: selectedFriend.locationUpdatedAt }
       : null;
+
+  const mapMyLocation: LocationPoint | null = meetingMode === "later" && myDeparture
+    ? { lat: myDeparture.lat, lng: myDeparture.lng, locationUpdatedAt: null }
+    : null;
+
+  const mapFriendLocation: LocationPoint | null = meetingMode === "later" && friendDeparture
+    ? { lat: friendDeparture.lat, lng: friendDeparture.lng, locationUpdatedAt: null }
+    : friendLocation;
 
   return (
     <main className="min-h-screen bg-[#F5F5F5] flex flex-col">
       <Header showLogout />
-
       <div className="flex gap-6 px-12 py-8">
         <FriendList
           friends={friends}
@@ -100,10 +101,8 @@ export default function MainShell() {
           selectedFriendId={selectedFriendId}
           onSelectFriend={setSelectedFriendId}
         />
-
         <div className="flex flex-col gap-6 flex-1">
           <FriendAddCard onAddFriend={handleAddFriend} />
-
           {selectedFriend ? (
             <ChatPanel selectedFriend={selectedFriend} />
           ) : (
@@ -111,13 +110,18 @@ export default function MainShell() {
               친구를 선택하면 채팅을 시작할 수 있습니다.
             </div>
           )}
-
-<MapCard friendLocation={friendLocation} recommendedPlaces={recommendedPlaces} />
-
-<RecommendationPanel
-  selectedFriend={selectedFriend}
-  onResult={(data) => setRecommendedPlaces(data?.places ?? [])}
-/>
+          <MapCard
+            friendLocation={mapFriendLocation}
+            recommendedPlaces={recommendedPlaces}
+            myDeparture={mapMyLocation}
+          />
+          <RecommendationPanel
+            selectedFriend={selectedFriend}
+            onResult={(data) => setRecommendedPlaces(data?.places ?? [])}
+            onModeChange={setMeetingMode}
+            onMyDepartureChange={setMyDeparture}
+            onFriendDepartureChange={setFriendDeparture}
+          />
         </div>
       </div>
     </main>
