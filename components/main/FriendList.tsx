@@ -1,5 +1,5 @@
 "use client";
-
+import { useState } from "react";
 import FriendListFilter from "./FriendListFilter";
 
 type FriendSummary = {
@@ -26,29 +26,35 @@ export default function FriendList({
   selectedFriendId,
   onSelectFriend,
 }: FriendListProps) {
+  const [filterText, setFilterText] = useState("");
+
+  const filteredFriends = friends.filter((f) =>
+    f.nickname.toLowerCase().includes(filterText.toLowerCase())
+  );
+
   return (
     <div className="bg-white rounded-2xl p-6 w-80 shadow-sm">
       <h2 className="text-xl font-bold mb-4">친구 목록</h2>
-
-      <FriendListFilter />
-
+      <FriendListFilter value={filterText} onChange={setFilterText} />
       {loading && (
         <p className="text-sm text-gray-400 py-4">
           친구 목록을 불러오는 중...
         </p>
       )}
-
       {error && <p className="text-sm text-red-500 py-4">{error}</p>}
-
       {!loading && !error && friends.length === 0 && (
         <p className="text-sm text-gray-400 py-4">
           아직 추가된 친구가 없습니다.
         </p>
       )}
-
+      {!loading && !error && friends.length > 0 && filteredFriends.length === 0 && (
+        <p className="text-sm text-gray-400 py-4">
+          검색 결과가 없습니다.
+        </p>
+      )}
       {!loading &&
         !error &&
-        friends.map((friend) => (
+        filteredFriends.map((friend) => (
           <button
             key={friend.id}
             type="button"
@@ -61,7 +67,6 @@ export default function FriendList({
               <div className="w-8 h-8 bg-gray-200 rounded-full" />
               <span className="text-gray-700">{friend.nickname}</span>
             </div>
-
             <span className="text-gray-400">{">"}</span>
           </button>
         ))}
