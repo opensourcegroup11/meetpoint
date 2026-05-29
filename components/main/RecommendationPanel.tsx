@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { openPostcodeSearch } from "@/lib/daum/postcode-loader";
+import PinPickerLayer from "./PinPickerLayer";
 
 type Mode = "now" | "later";
 type Category = "cafe" | "meal" | "fun";
@@ -100,6 +101,7 @@ export default function RecommendationPanel({
   const [result, setResult] = useState<RecommendationResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showPinPicker, setShowPinPicker] = useState(false);
 
   useEffect(() => {
     async function fetchMyLocation() {
@@ -127,7 +129,6 @@ export default function RecommendationPanel({
         const res = await fetch(`/api/departure?friendId=${friend.id}`);
         const json = (await res.json()) as ApiResponse<DepartureResponse>;
         if (json.ok) {
-          // 내 출발 위치
           if (json.data.departure) {
             const dep = {
               address: json.data.departure.address,
@@ -137,8 +138,7 @@ export default function RecommendationPanel({
             setMyDeparture(dep);
             onMyDepartureChange?.(dep);
           }
-    
-          // 친구 출발 위치 (친구가 저장한 위치 우선, 없으면 마지막 위치)
+
           if (json.data.friendDeparture) {
             const friendDep = {
               address: json.data.friendDeparture.address,
@@ -314,18 +314,27 @@ export default function RecommendationPanel({
           <div className="grid gap-3 md:grid-cols-2">
             <div className="flex flex-col gap-1">
               <span className="text-sm font-medium text-gray-700">내 출발 위치</span>
-              <button
-                type="button"
-                onClick={() => openPostcodeSearch((address, lat, lng) => {
-                  const dep = { address, lat, lng };
-                  setMyDeparture(dep);
-                  onMyDepartureChange?.(dep);
-                  setSaveMessage(null);
-                })}
-                className="rounded-lg border border-[#5B5BD6] px-3 py-2 text-sm text-[#5B5BD6] text-left"
-              >
-                {myDeparture ? myDeparture.address : "주소 검색"}
-              </button>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => openPostcodeSearch((address, lat, lng) => {
+                    const dep = { address, lat, lng };
+                    setMyDeparture(dep);
+                    onMyDepartureChange?.(dep);
+                    setSaveMessage(null);
+                  })}
+                  className="flex-1 rounded-lg border border-[#5B5BD6] px-3 py-2 text-sm text-[#5B5BD6] text-left"
+                >
+                  {myDeparture ? myDeparture.address : "주소 검색"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowPinPicker(true)}
+                  className="rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-600 hover:bg-gray-50"
+                >
+                  📍 핀
+                </button>
+              </div>
               {myDeparture && (
                 <>
                   <p className="text-xs text-gray-400">{myDeparture.lat.toFixed(5)}, {myDeparture.lng.toFixed(5)}</p>
@@ -418,6 +427,19 @@ export default function RecommendationPanel({
             ))}
           </div>
         </div>
+      )}
+
+      {showPinPicker && (
+        <PinPickerLayer
+          onConfirm={(address, lat, lng) => {
+            const dep = { address, lat, lng };
+            setMyDeparture(dep);
+            onMyDepartureChange?.(dep);
+            setSaveMessage(null);
+            setShowPinPicker(false);
+          }}
+          onClose={() => setShowPinPicker(false)}
+        />
       )}
     </section>
   );
