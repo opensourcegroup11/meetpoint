@@ -350,7 +350,7 @@ export default function MapCard({
             isSharing={isSharing}
           />
         </div>
-        <div className="text-6xl">🗺️</div>
+        <div className="text-9xl">🗺️</div>
       </div>
 
       {showMap && (
