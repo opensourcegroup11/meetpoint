@@ -64,32 +64,97 @@ function loadKakaoMapScript(): Promise<any> {
   });
 }
 
-function createMarkerContent(label: string, type: "me" | "friend" | "midpoint" | "place") {
-  const color =
-    type === "me" ? "#5B5BD6" :
-    type === "friend" ? "#10B981" :
-    type === "place" ? "#EF4444" :
-    "#F59E0B";
-  const icon = type === "midpoint" ? "★" : type === "place" ? "📍" : "●";
+// 순위별 색상
+const RANK_COLORS = ["#3B52B4", "#6B7FC4", "#9AA8D8"];
+
+function createMarkerContent(
+  label: string,
+  type: "me" | "friend" | "midpoint" | "place",
+  rank?: number, // 추천 장소일 때만 전달
+) {
+  // ── 내 위치 / 내 출발 위치 ──
+  if (type === "me") {
+    return `
+      <div style="
+        display:flex; align-items:center; gap:6px;
+        padding:6px 12px 6px 8px;
+        border-radius:999px;
+        background:#5B5BD6;
+        box-shadow:0 4px 14px rgba(91,91,214,0.45);
+        white-space:nowrap;
+      ">
+        <div style="
+          width:8px; height:8px; border-radius:50%;
+          background:white; flex-shrink:0;
+        "></div>
+        <span style="color:white; font-size:12px; font-weight:700;">${label}</span>
+      </div>`;
+  }
+
+  // ── 친구 위치 / 친구 출발 위치 ──
+  if (type === "friend") {
+    return `
+      <div style="
+        display:flex; align-items:center; gap:6px;
+        padding:6px 12px 6px 8px;
+        border-radius:999px;
+        background:#10B981;
+        box-shadow:0 4px 14px rgba(16,185,129,0.45);
+        white-space:nowrap;
+      ">
+        <div style="
+          width:8px; height:8px; border-radius:50%;
+          background:white; flex-shrink:0;
+        "></div>
+        <span style="color:white; font-size:12px; font-weight:700;">${label}</span>
+      </div>`;
+  }
+
+  // ── 중심점 ──
+  if (type === "midpoint") {
+    return `
+      <div style="
+        display:flex; align-items:center; gap:5px;
+        padding:6px 14px 6px 10px;
+        border-radius:999px;
+        background:#F59E0B;
+        box-shadow:0 4px 14px rgba(245,158,11,0.45);
+        white-space:nowrap;
+      ">
+        <span style="font-size:13px; line-height:1;">★</span>
+        <span style="color:white; font-size:12px; font-weight:700;">중심점</span>
+      </div>`;
+  }
+
+  // ── 추천 장소 ──
+  const rankColor = rank != null ? (RANK_COLORS[rank - 1] ?? "#9AA8D8") : "#9AA8D8";
+  // 장소명이 너무 길면 7자에서 자르기
+  const shortName = label.length > 8 ? label.slice(0, 8) + "…" : label;
+
   return `
     <div style="
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      padding: 7px 11px;
-      border-radius: 999px;
-      background: white;
-      border: 2px solid ${color};
-      color: #111827;
-      font-size: 12px;
-      font-weight: 700;
-      box-shadow: 0 6px 16px rgba(0, 0, 0, 0.18);
-      white-space: nowrap;
+      display:flex; align-items:center; gap:7px;
+      padding:5px 12px 5px 5px;
+      border-radius:999px;
+      background:white;
+      border:2px solid ${rankColor};
+      box-shadow:0 4px 16px rgba(0,0,0,0.14);
+      white-space:nowrap;
+      cursor:pointer;
     ">
-      <span style="color: ${color}; font-size: 13px;">${icon}</span>
-      <span>${label}</span>
-    </div>
-  `;
+      <div style="
+        width:22px; height:22px; border-radius:50%;
+        background:${rankColor};
+        color:white;
+        font-size:11px; font-weight:900;
+        display:flex; align-items:center; justify-content:center;
+        flex-shrink:0;
+      ">${rank}</div>
+      <span style="
+        font-size:12px; font-weight:700;
+        color:#1a1a2e;
+      ">${shortName}</span>
+    </div>`;
 }
 
 export default function MapCard({
@@ -160,32 +225,43 @@ export default function MapCard({
           location: LocationPoint,
           label: string,
           type: "me" | "friend" | "midpoint" | "place",
+          rank?: number,
         ) {
           const position = new kakao.maps.LatLng(location.lat, location.lng);
           new kakao.maps.CustomOverlay({
             map,
             position,
-            content: createMarkerContent(label, type),
-            yAnchor: 1.2,
+            content: createMarkerContent(label, type, rank),
+            yAnchor: 1.35,
           });
           bounds.extend(position);
           markerCount += 1;
         }
 
         if (effectiveMyLocation) {
-          addMarker(effectiveMyLocation, myDeparture ? "내 출발 위치" : "내 위치", "me");
+          addMarker(
+            effectiveMyLocation,
+            myDeparture ? "내 출발 위치" : "내 위치",
+            "me",
+          );
         }
         if (effectiveFriendLocation) {
-          addMarker(effectiveFriendLocation, myDeparture ? "친구 출발 위치" : "친구 위치", "friend");
+          addMarker(
+            effectiveFriendLocation,
+            myDeparture ? "친구 출발 위치" : "친구 위치",
+            "friend",
+          );
         }
         if (midpoint) {
           addMarker(midpoint, "중심점", "midpoint");
         }
+        // 추천 장소: rank 번호 전달
         recommendedPlaces.forEach((place, index) => {
           addMarker(
             { lat: place.lat, lng: place.lng, locationUpdatedAt: null },
-            `추천 ${index + 1}위 ${place.name}`,
+            place.name,
             "place",
+            index + 1,
           );
         });
 
