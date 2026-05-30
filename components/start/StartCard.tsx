@@ -1,29 +1,39 @@
+import Image from "next/image";
+import Link from "next/link";
+
 export default function StartCard() {
   return (
-    <section className="flex items-center justify-between px-20 py-24 bg-[#EEEEFF]">
-      <div className="flex flex-col gap-6 max-w-lg">
-        <h1 className="text-5xl font-bold text-gray-900 leading-tight">
+    <section className="flex min-h-[calc(100vh-88px)] items-center justify-between overflow-hidden bg-[#EEEEFF] px-20 py-24">
+      <div className="z-10 flex max-w-lg -translate-y-24 flex-col gap-6">
+        <h1 className="text-5xl font-bold leading-tight text-gray-900">
           Meet smarter,
           <br />
           meet faster.
         </h1>
 
-        <p className="text-gray-500 text-lg">
+        <p className="text-lg text-gray-500">
           Share your location, chat with friends,
           <br />
           and find the perfect meeting spot in seconds.
         </p>
 
-        <a
+        <Link
           href="/login"
-          className="bg-[#5B5BD6] text-white px-6 py-3 rounded-lg w-fit"
+          className="w-fit rounded-lg bg-[#5B5BD6] px-6 py-3 font-semibold text-white transition hover:bg-[#4B4BC4]"
         >
-          Let's get started!
-        </a>
+          Let&apos;s get started!
+        </Link>
       </div>
 
-      <div className="w-80 h-80 bg-green-400 rounded-2xl flex items-center justify-center text-white text-8xl">
-        ✓
+      <div className="flex flex-1 -translate-y-24 justify-end">
+        <Image
+          src="/hero-image.png"
+          alt="MeetPoint 추천 화면"
+          width={1200}
+          height={840}
+          priority
+          className="h-auto w-[1000px] max-w-none"
+        />
       </div>
     </section>
   );
