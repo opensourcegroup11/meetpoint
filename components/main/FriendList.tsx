@@ -36,6 +36,7 @@ export default function FriendList({
     <div className="bg-white rounded-2xl p-6 w-80 shadow-sm">
       <h2 className="text-xl font-bold mb-4">친구 목록</h2>
       <FriendListFilter value={filterText} onChange={setFilterText} />
+
       {loading && (
         <p className="text-sm text-gray-400 py-4">
           친구 목록을 불러오는 중...
@@ -52,6 +53,7 @@ export default function FriendList({
           검색 결과가 없습니다.
         </p>
       )}
+
       {!loading &&
         !error &&
         filteredFriends.map((friend) => (
@@ -64,7 +66,13 @@ export default function FriendList({
             }`}
           >
             <div className="flex items-center gap-3">
-              <div className="w-8 h-8 bg-gray-200 rounded-full" />
+              <div className="w-8 h-8 rounded-full bg-[#EEEEFF] overflow-hidden flex items-center justify-center">
+                <img
+                  src="/user.png"
+                  alt="프로필"
+                  className="w-6 h-6 object-contain"
+                />
+              </div>
               <span className="text-gray-700">{friend.nickname}</span>
             </div>
             <span className="text-gray-400">{">"}</span>
