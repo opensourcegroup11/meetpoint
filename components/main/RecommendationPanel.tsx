@@ -81,8 +81,32 @@ type RecommendationPanelProps = {
 
 function formatMeter(value: number) {
   if (value >= 1000) return `${(value / 1000).toFixed(1)}km`;
-  return `${value}m`;
+  return `${Math.round(value)}m`;
 }
+
+/**
+ * 거리 바 width% 계산
+ * - 최대값 기준 비율로 계산하되 최대 72%까지만 차도록 캡을 씌움
+ * - 이렇게 하면 막대가 꽉 차지 않아서 나/친구 간 차이가 시각적으로 잘 드러남
+ */
+function calcBarWidth(value: number, max: number) {
+  if (max === 0) return 0;
+  const ratio = value / max; // 0 ~ 1
+  return Math.round(ratio * 72); // 최대 72%
+}
+
+const RANK_COLORS = ["#3B52B4", "#6B7FC4", "#9AA8D8"];
+const RANK_BANNER = [
+  "linear-gradient(90deg,#3B52B4,#5B72D4)",
+  "linear-gradient(90deg,#6B7FC4,#8B9FE4)",
+  "linear-gradient(90deg,#9AA8D8,#BAC8F8)",
+];
+
+const CATEGORY_LABEL: Record<Category, string> = {
+  cafe: "카페",
+  meal: "식사",
+  fun: "놀거리",
+};
 
 export default function RecommendationPanel({
   selectedFriend,
@@ -255,8 +279,14 @@ export default function RecommendationPanel({
     }
   }
 
+  // 거리 바 width 계산용 최대값
+  const maxDist = result
+    ? Math.max(...result.places.flatMap((p) => [p.distanceFromMe, p.distanceFromFriend]))
+    : 1;
+
   return (
     <section className="rounded-2xl bg-white p-6 shadow-sm">
+      {/* ── 헤더 ── */}
       <div className="mb-4">
         <h2 className="text-xl font-bold text-gray-900">중심점 주변 장소 추천</h2>
         <p className="mt-1 text-sm text-gray-500">
@@ -264,6 +294,7 @@ export default function RecommendationPanel({
         </p>
       </div>
 
+      {/* ── 컨트롤 ── */}
       <div className="grid gap-3 md:grid-cols-3">
         <label className="flex flex-col gap-1 text-sm font-medium text-gray-700">
           만남 모드
@@ -295,13 +326,14 @@ export default function RecommendationPanel({
             type="button"
             onClick={handleRecommend}
             disabled={loading || !selectedFriend}
-            className="w-full rounded-lg bg-[#5B5BD6] px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
+            className="w-full rounded-lg bg-[#3B52B4] px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
           >
             {loading ? "추천 중..." : "추천 장소 찾기"}
           </button>
         </div>
       </div>
 
+      {/* ── 나중에 만나기: 출발 위치 설정 ── */}
       {mode === "later" && (
         <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4">
           <div className="mb-3">
@@ -317,13 +349,15 @@ export default function RecommendationPanel({
               <div className="flex gap-2">
                 <button
                   type="button"
-                  onClick={() => openPostcodeSearch((address, lat, lng) => {
-                    const dep = { address, lat, lng };
-                    setMyDeparture(dep);
-                    onMyDepartureChange?.(dep);
-                    setSaveMessage(null);
-                  })}
-                  className="flex-1 rounded-lg border border-[#5B5BD6] px-3 py-2 text-sm text-[#5B5BD6] text-left"
+                  onClick={() =>
+                    openPostcodeSearch((address, lat, lng) => {
+                      const dep = { address, lat, lng };
+                      setMyDeparture(dep);
+                      onMyDepartureChange?.(dep);
+                      setSaveMessage(null);
+                    })
+                  }
+                  className="flex-1 rounded-lg border border-[#3B52B4] px-3 py-2 text-sm text-[#3B52B4] text-left"
                 >
                   {myDeparture ? myDeparture.address : "주소 검색"}
                 </button>
@@ -337,7 +371,9 @@ export default function RecommendationPanel({
               </div>
               {myDeparture && (
                 <>
-                  <p className="text-xs text-gray-400">{myDeparture.lat.toFixed(5)}, {myDeparture.lng.toFixed(5)}</p>
+                  <p className="text-xs text-gray-400">
+                    {myDeparture.lat.toFixed(5)}, {myDeparture.lng.toFixed(5)}
+                  </p>
                   <button
                     type="button"
                     onClick={handleSaveDeparture}
@@ -358,7 +394,9 @@ export default function RecommendationPanel({
                   <p className="rounded-lg border border-[#10B981] px-3 py-2 text-sm text-[#10B981]">
                     {friendDeparture.address}
                   </p>
-                  <p className="text-xs text-gray-400">{friendDeparture.lat.toFixed(5)}, {friendDeparture.lng.toFixed(5)}</p>
+                  <p className="text-xs text-gray-400">
+                    {friendDeparture.lat.toFixed(5)}, {friendDeparture.lng.toFixed(5)}
+                  </p>
                 </>
               ) : (
                 <p className="rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-400">
@@ -370,6 +408,7 @@ export default function RecommendationPanel({
         </div>
       )}
 
+      {/* ── 선택된 친구 안내 ── */}
       <div className="mt-3 text-sm text-gray-500">
         {selectedFriend ? (
           <p>선택한 친구: {selectedFriend.nickname}</p>
@@ -378,57 +417,305 @@ export default function RecommendationPanel({
         )}
       </div>
 
+      {/* ── 에러 ── */}
       {error && (
         <p className="mt-4 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-600">{error}</p>
       )}
 
+      {/* ── 추천 결과 ── */}
       {result && (
         <div className="mt-5">
-          <div className="mb-3 rounded-xl bg-[#F5F5FF] p-4 text-sm text-gray-700">
-            <p>중심점: {result.midpoint.lat.toFixed(5)}, {result.midpoint.lng.toFixed(5)}</p>
-            <p>검색 반경: {formatMeter(result.radius)}</p>
-            <p>기준거리: {formatMeter(result.baseDistance)}</p>
+          {/* 메타 정보 배너 */}
+          <div
+            className="mb-4 flex flex-wrap items-center gap-2 rounded-xl px-4 py-3 text-xs font-medium"
+            style={{ background: "rgba(59,82,180,0.07)", color: "#3B52B4" }}
+          >
+            <span>
+              중심점&nbsp;
+              <span className="font-mono font-bold">
+                {result.midpoint.lat.toFixed(5)}, {result.midpoint.lng.toFixed(5)}
+              </span>
+            </span>
+            <span className="opacity-30">·</span>
+            <span>
+              반경&nbsp;
+              <span className="font-mono font-bold">{formatMeter(result.radius)}</span>
+            </span>
+            <span className="opacity-30">·</span>
+            <span>
+              기준거리&nbsp;
+              <span className="font-mono font-bold">{formatMeter(result.baseDistance)}</span>
+            </span>
+            <span className="opacity-30">·</span>
+            <span>
+              {mode === "now" ? "지금 만나기" : "나중에 만나기"}&nbsp;·&nbsp;
+              {CATEGORY_LABEL[result.category]}
+            </span>
           </div>
 
-          <div className="space-y-3">
-            {result.places.map((place, index) => (
-              <article key={place.id} className="rounded-xl border border-gray-200 p-4">
-                <div className="flex items-start justify-between gap-4">
-                  <div>
-                    <p className="text-sm font-semibold text-[#5B5BD6]">추천 {index + 1}위</p>
-                    <h3 className="mt-1 text-lg font-bold text-gray-900">{place.name}</h3>
-                    <p className="mt-1 text-sm text-gray-500">{place.categoryName}</p>
-                    <p className="mt-1 text-sm text-gray-500">{place.address}</p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-sm text-gray-500">score</p>
-                    <p className="text-xl font-bold text-gray-900">{formatMeter(place.score)}</p>
-                  </div>
-                </div>
+          {/* 카드 목록 */}
+          <div className="space-y-4">
+            {result.places.map((place, index) => {
+              const rankColor = RANK_COLORS[index] ?? "#9AA8D8";
+              const banner = RANK_BANNER[index] ?? RANK_BANNER[2];
+              const meBarW = calcBarWidth(place.distanceFromMe, maxDist);
+              const frBarW = calcBarWidth(place.distanceFromFriend, maxDist);
+              const avgBarW = calcBarWidth(place.averageDistance, maxDist);
 
-                <div className="mt-3 grid gap-2 text-sm text-gray-600 md:grid-cols-2">
-                  <p>내 거리: {formatMeter(place.distanceFromMe)}</p>
-                  <p>친구 거리: {formatMeter(place.distanceFromFriend)}</p>
-                  <p>평균 이동거리: {formatMeter(place.averageDistance)}</p>
-                  <p>거리 편차: {formatMeter(place.distanceGap)}</p>
-                  <p>카테고리 패널티: {formatMeter(place.categoryPenalty)}</p>
-                  <p>활성도 패널티: {formatMeter(place.activityPenalty)}</p>
-                  <p>교통 패널티: {formatMeter(place.transitPenalty)}</p>
-                  <p>주변 관련 후보 수: {place.nearbyCount}개</p>
-                </div>
+              return (
+                <article
+                  key={place.id}
+                  className="overflow-hidden rounded-2xl bg-white"
+                  style={{
+                    boxShadow:
+                      "0 2px 16px rgba(59,82,180,0.10), 0 1px 4px rgba(59,82,180,0.06)",
+                  }}
+                >
+                  {/* 상단 컬러 배너 */}
+                  <div style={{ height: 6, background: banner }} />
 
-                {place.placeUrl && (
-                  <a href={place.placeUrl} target="_blank" rel="noreferrer"
-                    className="mt-3 inline-block text-sm font-semibold text-[#5B5BD6]">
-                    카카오맵에서 보기 →
-                  </a>
-                )}
-              </article>
-            ))}
+                  <div className="p-5">
+                    {/* 순위 + 장소명 + 스코어 */}
+                    <div className="mb-2 flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        {/* 순위 배지 */}
+                        <div className="mb-2 flex items-center gap-2">
+                          <div
+                            className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-lg text-sm font-black text-white"
+                            style={{ background: rankColor }}
+                          >
+                            {index + 1}
+                          </div>
+                          <span className="text-xs font-medium text-gray-400">
+                            추천 {index + 1}위
+                          </span>
+                        </div>
+                        {/* 장소명 */}
+                        <h3
+                          className="truncate text-lg font-black leading-tight tracking-tight text-gray-900"
+                          style={{ letterSpacing: "-0.3px" }}
+                        >
+                          {place.name}
+                        </h3>
+                      </div>
+
+                      {/* 스코어 */}
+                      <div
+                        className="flex-shrink-0 rounded-xl px-3 py-2 text-right"
+                        style={{ background: "rgba(59,82,180,0.07)" }}
+                      >
+                        <p
+                          className="mb-0.5 font-mono text-[10px] uppercase tracking-widest"
+                          style={{ color: "#8B98C0" }}
+                        >
+                          score
+                        </p>
+                        <p
+                          className="font-mono text-[18px] font-black leading-none"
+                          style={{ color: rankColor }}
+                        >
+                          {formatMeter(place.score)}
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* 카테고리 태그 + 주소 */}
+                    <div className="mb-4 flex flex-wrap items-center gap-1.5">
+                      <span
+                        className="rounded-md px-2 py-0.5 text-[11px] font-semibold"
+                        style={{
+                          background: "rgba(59,82,180,0.08)",
+                          color: "#3B52B4",
+                        }}
+                      >
+                        {place.categoryName}
+                      </span>
+                      <span className="text-[11px] text-gray-400">{place.address}</span>
+                    </div>
+
+                    {/* 거리 바 섹션 */}
+                    <div
+                      className="mb-3 rounded-xl p-4"
+                      style={{ background: "#F8FAFF" }}
+                    >
+                      {/* 나 */}
+                      <div className="mb-3 flex items-center gap-3">
+                        <div className="flex w-10 flex-shrink-0 items-center gap-1.5 text-xs font-semibold text-gray-600">
+                          <div
+                            className="h-2 w-2 flex-shrink-0 rounded-full"
+                            style={{ background: "#3B82F6" }}
+                          />
+                          나
+                        </div>
+                        <div
+                          className="h-2.5 flex-1 overflow-hidden rounded-full"
+                          style={{ background: "rgba(59,82,180,0.08)" }}
+                        >
+                          <div
+                            className="h-full rounded-full transition-all duration-700"
+                            style={{
+                              width: `${meBarW}%`,
+                              background:
+                                "linear-gradient(90deg,#3B82F6,#60A5FA)",
+                            }}
+                          />
+                        </div>
+                        <div className="w-12 flex-shrink-0 text-right font-mono text-xs font-bold text-gray-800">
+                          {formatMeter(place.distanceFromMe)}
+                        </div>
+                      </div>
+
+                      {/* 친구 */}
+                      <div className="mb-3 flex items-center gap-3">
+                        <div className="flex w-10 flex-shrink-0 items-center gap-1.5 text-xs font-semibold text-gray-600">
+                          <div
+                            className="h-2 w-2 flex-shrink-0 rounded-full"
+                            style={{ background: "#22C55E" }}
+                          />
+                          친구
+                        </div>
+                        <div
+                          className="h-2.5 flex-1 overflow-hidden rounded-full"
+                          style={{ background: "rgba(59,82,180,0.08)" }}
+                        >
+                          <div
+                            className="h-full rounded-full transition-all duration-700"
+                            style={{
+                              width: `${frBarW}%`,
+                              background:
+                                "linear-gradient(90deg,#22C55E,#4ADE80)",
+                            }}
+                          />
+                        </div>
+                        <div className="w-12 flex-shrink-0 text-right font-mono text-xs font-bold text-gray-800">
+                          {formatMeter(place.distanceFromFriend)}
+                        </div>
+                      </div>
+
+                      {/* 평균 */}
+                      <div className="flex items-center gap-3">
+                        <div
+                          className="w-10 flex-shrink-0 text-xs font-bold"
+                          style={{ color: rankColor }}
+                        >
+                          평균
+                        </div>
+                        <div
+                          className="h-2.5 flex-1 overflow-hidden rounded-full"
+                          style={{ background: "rgba(59,82,180,0.08)" }}
+                        >
+                          <div
+                            className="h-full rounded-full transition-all duration-700"
+                            style={{
+                              width: `${avgBarW}%`,
+                              background: `linear-gradient(90deg,${rankColor},#6B7FC4)`,
+                              opacity: 0.6,
+                            }}
+                          />
+                        </div>
+                        <div
+                          className="w-12 flex-shrink-0 text-right font-mono text-xs font-bold"
+                          style={{ color: rankColor }}
+                        >
+                          {formatMeter(place.averageDistance)}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* 패널티 칩 */}
+                    <div className="mb-4 grid grid-cols-2 gap-2">
+                      {[
+                        { label: "편차", value: place.distanceGap },
+                        { label: "카테고리", value: place.categoryPenalty },
+                        { label: "활성도", value: place.activityPenalty },
+                        { label: "교통", value: place.transitPenalty },
+                      ].map(({ label, value }) => {
+                        const isZero = value === 0;
+                        return (
+                          <div
+                            key={label}
+                            className="flex items-center justify-between rounded-xl px-3 py-2.5"
+                            style={{
+                              background: isZero
+                                ? "rgba(34,197,94,0.07)"
+                                : "rgba(245,158,11,0.07)",
+                              border: `1px solid ${isZero ? "rgba(34,197,94,0.2)" : "rgba(245,158,11,0.2)"}`,
+                            }}
+                          >
+                            <span className="text-sm font-medium" style={{ color: "#6B7280" }}>
+                              {label}
+                            </span>
+                            <span
+                              className="font-mono text-sm font-black"
+                              style={{ color: isZero ? "#16A34A" : "#D97706" }}
+                            >
+                              {isZero ? "+0m" : `+${formatMeter(value)}`}
+                            </span>
+                          </div>
+                        );
+                      })}
+                    </div>
+
+                    {/* 하단: 주변 후보 수 + 카카오맵 링크 */}
+                    <div className="flex items-center justify-between">
+                      <div
+                        className="flex items-center gap-1.5 text-[11px]"
+                        style={{ color: "#8B98C0" }}
+                      >
+                        <svg
+                          width="13"
+                          height="13"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                        >
+                          <circle cx="12" cy="12" r="10" />
+                          <path d="M12 8v4l3 3" />
+                        </svg>
+                        주변 후보{" "}
+                        <span
+                          className="font-mono font-bold"
+                          style={{ color: "#4A5580" }}
+                        >
+                          {place.nearbyCount}개
+                        </span>
+                      </div>
+
+                      {place.placeUrl && (
+                        <a
+                          href={place.placeUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-bold transition-colors"
+                          style={{
+                            background: "rgba(59,82,180,0.07)",
+                            color: "#3B52B4",
+                          }}
+                        >
+                          카카오맵
+                          <svg
+                            width="11"
+                            height="11"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2.5"
+                          >
+                            <path d="M5 12h14M12 5l7 7-7 7" />
+                          </svg>
+                        </a>
+                      )}
+                    </div>
+                  </div>
+                </article>
+              );
+            })}
           </div>
         </div>
       )}
 
+      {/* ── 핀 피커 ── */}
       {showPinPicker && (
         <PinPickerLayer
           onConfirm={(address, lat, lng) => {
