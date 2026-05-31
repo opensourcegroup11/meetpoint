@@ -1,5 +1,5 @@
 import { haversineDistance, calculateMidpoint, type Coordinate } from "@/lib/utils/distance";
-import { fetchKakaoKeyword, fetchNearestSubwayDistance, type KakaoPlaceDocument } from "@/lib/kakao/local";
+import { fetchKakaoKeyword, fetchNearestTransitDistance, type KakaoPlaceDocument } from "@/lib/kakao/local";
 
 type Category = "cafe" | "meal" | "fun";
 
@@ -146,8 +146,8 @@ export async function getRecommendations(
       const activityShortageDegree = 1 - nearbyCount / maxNearbyCount;
       const activityPenalty = baseDistance * 0.1 * activityShortageDegree;
 
-      const subwayDist = await fetchNearestSubwayDistance(location);
-      const transitPenalty = baseDistance * 0.15 * transitInconvenienceDegree(subwayDist);
+      const transitDist = await fetchNearestTransitDistance(location);
+      const transitPenalty = baseDistance * 0.15 * transitInconvenienceDegree(transitDist);
 
       const score =
         averageDistance + distanceGap + categoryPenalty + activityPenalty + transitPenalty;
