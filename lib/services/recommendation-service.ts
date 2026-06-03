@@ -8,6 +8,10 @@ const CATEGORY_WEIGHT = 0.2;
 const ACTIVITY_WEIGHT = 0.1;
 const TRANSIT_WEIGHT = 0.15;
 
+const MIN_SCORING_CANDIDATE_COUNT = 12;
+const MAX_SCORING_CANDIDATE_COUNT = 15;
+const RECOMMENDATION_RESULT_COUNT = 5;
+
 export type ScoredPlace = {
   id: string;
   name: string;
@@ -203,6 +207,7 @@ function dedupePlaces(places: KakaoPlaceDocument[]): KakaoPlaceDocument[] {
 
   for (const place of places) {
     const key = place.id || `${place.place_name}-${place.x}-${place.y}`;
+
     if (!map.has(key)) {
       map.set(key, place);
     }
@@ -241,7 +246,7 @@ export async function getRecommendations(
     rawPlaces = dedupePlaces(results.flat());
     usedRadius = radius;
 
-    if (rawPlaces.length >= 5) {
+    if (rawPlaces.length >= MIN_SCORING_CANDIDATE_COUNT) {
       break;
     }
   }
@@ -259,7 +264,7 @@ export async function getRecommendations(
       };
     })
     .sort((a, b) => a.distanceFromMidpoint - b.distanceFromMidpoint)
-    .slice(0, 15)
+    .slice(0, MAX_SCORING_CANDIDATE_COUNT)
     .map(({ place }) => place);
 
   const placeLocations = candidates.map((place) => ({
@@ -344,6 +349,6 @@ export async function getRecommendations(
     radius: usedRadius,
     midpoint,
     baseDistance: Math.round(baseDistance),
-    places: scoredPlaces.slice(0, 5),
+    places: scoredPlaces.slice(0, RECOMMENDATION_RESULT_COUNT),
   };
 }
