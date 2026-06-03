@@ -2,6 +2,11 @@ import { haversineDistance, calculateMidpoint, type Coordinate } from "@/lib/uti
 import { fetchKakaoKeyword, fetchNearestTransitDistance, type KakaoPlaceDocument } from "@/lib/kakao/local";
 
 type Category = "cafe" | "meal" | "fun";
+type PlaceIntent = "cafe" | "meal" | "alcohol" | "fun" | "unknown";
+
+const CATEGORY_WEIGHT = 0.2;
+const ACTIVITY_WEIGHT = 0.1;
+const TRANSIT_WEIGHT = 0.15;
 
 export type ScoredPlace = {
   id: string;
@@ -34,52 +39,175 @@ export type RecommendationResult = {
 };
 
 function getCategoryQueries(category: Category): string[] {
-  if (category === "cafe") return ["카페", "디저트", "베이커리"];
-  if (category === "meal") return ["식당", "맛집", "음식점"];
-  return ["놀거리", "영화관", "보드게임카페"];
+  if (category === "cafe") {
+    return ["카페", "커피전문점", "디저트카페"];
+  }
+
+  if (category === "meal") {
+    return ["식당", "한식", "분식", "일식", "양식"];
+  }
+
+  return ["놀거리", "영화관", "보드게임카페", "노래방"];
+}
+
+function getPlaceText(place: KakaoPlaceDocument): string {
+  return [
+    place.place_name ?? "",
+    place.category_name ?? "",
+    place.category_group_name ?? "",
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase()
+    .replace(/\s+/g, " ");
+}
+
+function isAlcoholPlace(text: string): boolean {
+  return (
+    text.includes("술집") ||
+    text.includes("주점") ||
+    text.includes("호프") ||
+    text.includes("포차") ||
+    text.includes("이자카야") ||
+    text.includes("오뎅바") ||
+    text.includes("와인바") ||
+    text.includes("맥주") ||
+    text.includes("칵테일") ||
+    text.includes("펍")
+  );
+}
+
+function classifyPlaceIntent(place: KakaoPlaceDocument): PlaceIntent {
+  const text = getPlaceText(place);
+
+  // 보드게임카페처럼 "카페"가 들어가지만 실제 목적은 놀거리인 경우를 먼저 처리
+  if (
+    text.includes("보드게임카페") ||
+    text.includes("방탈출") ||
+    text.includes("노래방") ||
+    text.includes("영화관") ||
+    text.includes("볼링") ||
+    text.includes("pc방") ||
+    text.includes("피시방") ||
+    text.includes("오락") ||
+    text.includes("공연") ||
+    text.includes("문화") ||
+    text.includes("체험") ||
+    text.includes("관광")
+  ) {
+    return "fun";
+  }
+
+  // 카페/디저트
+  if (
+    text.includes("카페") ||
+    text.includes("커피") ||
+    text.includes("커피전문점") ||
+    text.includes("디저트") ||
+    text.includes("베이커리") ||
+    text.includes("제과") ||
+    text.includes("빵집")
+  ) {
+    return "cafe";
+  }
+
+  // 술집/주점 계열
+  // 주의: "바" 한 글자는 너무 넓어서 사용하지 않음
+  if (isAlcoholPlace(text)) {
+    return "alcohol";
+  }
+
+  // 실제 식사 장소
+  if (
+    text.includes("한식") ||
+    text.includes("중식") ||
+    text.includes("일식") ||
+    text.includes("양식") ||
+    text.includes("분식") ||
+    text.includes("식당") ||
+    text.includes("맛집") ||
+    text.includes("고기") ||
+    text.includes("갈비") ||
+    text.includes("국밥") ||
+    text.includes("찌개") ||
+    text.includes("초밥") ||
+    text.includes("라멘") ||
+    text.includes("돈까스") ||
+    text.includes("파스타") ||
+    text.includes("피자") ||
+    text.includes("햄버거") ||
+    text.includes("패스트푸드") ||
+    text.includes("뷔페") ||
+    text.includes("치킨") ||
+    text.includes("음식점")
+  ) {
+    return "meal";
+  }
+
+  return "unknown";
 }
 
 export function getCategoryMismatchDegree(
   category: Category,
   place: KakaoPlaceDocument,
 ): number {
-  const text = `${place.place_name} ${place.category_name} ${place.category_group_name}`;
+  const intent = classifyPlaceIntent(place);
 
   if (category === "cafe") {
-    if (text.includes("카페")) return 0;
-    if (text.includes("브런치")) return 0.2;
-    if (text.includes("디저트") || text.includes("베이커리") || text.includes("제과")) return 0.4;
-    if (text.includes("음식점") || text.includes("식당") || text.includes("맛집")) return 0.8;
+    if (intent === "cafe") return 0;
+    if (intent === "fun") return 0.5;
+    if (intent === "meal") return 0.8;
+    if (intent === "alcohol") return 0.9;
     return 1.0;
   }
 
   if (category === "meal") {
-    if (
-      text.includes("음식점") || text.includes("식당") ||
-      text.includes("한식") || text.includes("중식") ||
-      text.includes("일식") || text.includes("양식")
-    ) return 0;
-    if (text.includes("카페") || text.includes("디저트")) return 0.6;
+    if (intent === "meal") return 0;
+    if (intent === "cafe") return 0.6;
+    if (intent === "alcohol") return 0.7;
+    if (intent === "fun") return 0.9;
     return 1.0;
   }
 
-  // fun
-  if (
-    text.includes("영화") || text.includes("문화") || text.includes("공연") ||
-    text.includes("오락") || text.includes("체험") || text.includes("보드게임") ||
-    text.includes("관광")
-  ) return 0;
-  if (text.includes("카페")) return 0.4;
-  if (text.includes("음식점") || text.includes("식당")) return 0.6;
+  // category === "fun"
+  if (intent === "fun") return 0;
+  if (intent === "cafe") return 0.4;
+  if (intent === "meal") return 0.6;
+  if (intent === "alcohol") return 0.7;
   return 1.0;
+}
+
+function isRelevantForActivity(
+  category: Category,
+  place: KakaoPlaceDocument,
+): boolean {
+  const intent = classifyPlaceIntent(place);
+
+  if (category === "cafe") {
+    return intent === "cafe";
+  }
+
+  if (category === "meal") {
+    return intent === "meal";
+  }
+
+  if (category === "fun") {
+    return intent === "fun";
+  }
+
+  return false;
 }
 
 function dedupePlaces(places: KakaoPlaceDocument[]): KakaoPlaceDocument[] {
   const map = new Map<string, KakaoPlaceDocument>();
+
   for (const place of places) {
     const key = place.id || `${place.place_name}-${place.x}-${place.y}`;
-    if (!map.has(key)) map.set(key, place);
+    if (!map.has(key)) {
+      map.set(key, place);
+    }
   }
+
   return Array.from(map.values());
 }
 
@@ -109,23 +237,44 @@ export async function getRecommendations(
     const results = await Promise.all(
       searchQueries.map((q) => fetchKakaoKeyword(q, midpoint, radius)),
     );
+
     rawPlaces = dedupePlaces(results.flat());
     usedRadius = radius;
-    if (rawPlaces.length >= 5) break;
+
+    if (rawPlaces.length >= 5) {
+      break;
+    }
   }
 
-  const candidates = rawPlaces.slice(0, 12);
+  const candidates = rawPlaces
+    .map((place) => {
+      const location = {
+        lat: Number(place.y),
+        lng: Number(place.x),
+      } as Coordinate;
+
+      return {
+        place,
+        distanceFromMidpoint: haversineDistance(midpoint, location),
+      };
+    })
+    .sort((a, b) => a.distanceFromMidpoint - b.distanceFromMidpoint)
+    .slice(0, 15)
+    .map(({ place }) => place);
 
   const placeLocations = candidates.map((place) => ({
     place,
-    location: { lat: Number(place.y), lng: Number(place.x) } as Coordinate,
+    location: {
+      lat: Number(place.y),
+      lng: Number(place.x),
+    } as Coordinate,
   }));
 
   const nearbyCounts = placeLocations.map(({ location }) =>
     placeLocations.filter(({ place: other, location: otherLoc }) => {
       return (
         haversineDistance(location, otherLoc) <= 500 &&
-        getCategoryMismatchDegree(category, other) <= 0.6
+        isRelevantForActivity(category, other)
       );
     }).length,
   );
@@ -140,17 +289,22 @@ export async function getRecommendations(
       const distanceGap = Math.abs(distanceFromMe - distanceFromFriend);
 
       const mismatch = getCategoryMismatchDegree(category, place);
-      const categoryPenalty = baseDistance * 0.15 * mismatch;
+      const categoryPenalty = baseDistance * CATEGORY_WEIGHT * mismatch;
 
       const nearbyCount = nearbyCounts[index];
       const activityShortageDegree = 1 - nearbyCount / maxNearbyCount;
-      const activityPenalty = baseDistance * 0.1 * activityShortageDegree;
+      const activityPenalty = baseDistance * ACTIVITY_WEIGHT * activityShortageDegree;
 
       const transitDist = await fetchNearestTransitDistance(location);
-      const transitPenalty = baseDistance * 0.15 * transitInconvenienceDegree(transitDist);
+      const transitPenalty =
+        baseDistance * TRANSIT_WEIGHT * transitInconvenienceDegree(transitDist);
 
       const score =
-        averageDistance + distanceGap + categoryPenalty + activityPenalty + transitPenalty;
+        averageDistance +
+        distanceGap +
+        categoryPenalty +
+        activityPenalty +
+        transitPenalty;
 
       return {
         id: place.id || `${place.place_name}-${place.x}-${place.y}`,
@@ -175,7 +329,14 @@ export async function getRecommendations(
     }),
   );
 
-  scoredPlaces.sort((a, b) => a.score - b.score);
+  scoredPlaces.sort((a, b) => {
+    if (a.score !== b.score) return a.score - b.score;
+    if (a.distanceGap !== b.distanceGap) return a.distanceGap - b.distanceGap;
+    if (a.averageDistance !== b.averageDistance) {
+      return a.averageDistance - b.averageDistance;
+    }
+    return a.name.localeCompare(b.name, "ko");
+  });
 
   return {
     mode,
