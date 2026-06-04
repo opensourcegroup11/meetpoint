@@ -8,6 +8,8 @@ const CATEGORY_WEIGHT = 0.2;
 const ACTIVITY_WEIGHT = 0.1;
 const TRANSIT_WEIGHT = 0.15;
 
+const MIN_BASE_DISTANCE = 500;
+
 const MIN_SCORING_CANDIDATE_COUNT = 12;
 const MAX_SCORING_CANDIDATE_COUNT = 15;
 const RECOMMENDATION_RESULT_COUNT = 5;
@@ -231,7 +233,10 @@ export async function getRecommendations(
 ): Promise<RecommendationResult> {
   const midpoint = calculateMidpoint(departure, friendDeparture);
   const betweenDistance = haversineDistance(departure, friendDeparture);
-  const baseDistance = betweenDistance / 2;
+  
+  // 두 사람이 같은 위치이거나 매우 가까운 경우 baseDistance가 0에 가까워져
+  // 카테고리, 활성도, 교통 패널티가 모두 사라지는 것을 방지하기 위한 최소 기준거리
+  const baseDistance = Math.max(betweenDistance / 2, MIN_BASE_DISTANCE);
 
   const searchQueries = getCategoryQueries(category);
 
