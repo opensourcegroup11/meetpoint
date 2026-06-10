@@ -12,11 +12,7 @@ export default function Header({ showLogout = false }: HeaderProps) {
         <span className="text-xl font-bold text-[#5B5BD6]">meetpoint</span>
       </div>
 
-      <nav className="flex gap-10 text-gray-600">
-        <a href="#">Home</a>
-        <a href="#">Features</a>
-        <a href="#">About us</a>
-      </nav>
+
 
       {showLogout ? (
         <LogoutButton />
