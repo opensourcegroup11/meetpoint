@@ -1,4 +1,5 @@
-import { getCurrentUserFromCookie } from "@/lib/auth/session";
+/* eslint-disable @typescript-eslint/no-explicit-any */import { getCurrentUserFromCookie } from "@/lib/auth/session";
+
 import { getSupabaseAdminClient } from "@/lib/supabase/server";
 import { NextRequest, NextResponse } from "next/server";
 

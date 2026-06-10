@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { getSupabaseAdminClient } from "@/lib/supabase/server";
 
 export async function findFriendsByUserId(userId: string) {

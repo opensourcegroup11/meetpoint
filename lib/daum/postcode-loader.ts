@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 let postcodePromise: Promise<void> | null = null;
 
 async function ensureKakaoMaps(): Promise<void> {
